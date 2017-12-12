@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -68,7 +68,7 @@ namespace TSP
         {
             rnd = new Random(seed);
         }
-        
+
 
         /* Member Fucntions */
         public static TSPOrganism newOrganism()
@@ -79,7 +79,7 @@ namespace TSP
             ArrayList newRoute = new ArrayList();
 
             // We only really need this loop if we care about infinite routes...
-            // It should be easy enough to 
+            // It should be easy enough to
             do
             {
                 for (i = 0; i < perm.Length; i++)                                 // create a random permutation template
@@ -94,7 +94,7 @@ namespace TSP
                     perm[swap] = temp;
                 }
                 newRoute.Clear();
-                for (i = 0; i < Cities.Length; i++)                            // Now build the route using the random permutation 
+                for (i = 0; i < Cities.Length; i++)                            // Now build the route using the random permutation
                 {
                     newRoute.Add(Cities[perm[i]]);
                 }
@@ -194,7 +194,7 @@ namespace TSP
         /* Helper Fucntions */
         private static double computeCost(ArrayList route)
         {
-            // go through each edge in the route and add up the cost. 
+            // go through each edge in the route and add up the cost.
             int x;
             City here;
             double cost = 0D;
@@ -205,7 +205,7 @@ namespace TSP
                 cost += here.costToGetTo(route[x + 1] as City);
             }
 
-            // go from the last city to the first. 
+            // go from the last city to the first.
             here = route[route.Count - 1] as City;
             cost += here.costToGetTo(route[0] as City);
 

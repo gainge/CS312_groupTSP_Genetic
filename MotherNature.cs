@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,7 +22,7 @@ namespace TSP
         public MotherNature()
         {
             // Default population size
-            populationSize = 100;   
+            populationSize = 100;
 
             // Default parameters
             percentMated = 0.6;
@@ -42,6 +42,15 @@ namespace TSP
 
         /* ACCESSOR METHODS */
         // I generatd these thinking I'd use them but I never did lol
+        public void setPercentMated(double pMated)
+        {
+            percentMated = pMated;
+        }
+
+        public void setPercentMutated(double pMutated)
+        {
+            percentMutated = pMutated;
+        }
         public double PercentMated { get => percentMated; set => percentMated = value; }
         public double PercentMutated { get => percentMutated; set => percentMutated = value; }
         public double PercentRandom { get => percentRandom; set => percentRandom = value; }
@@ -62,12 +71,48 @@ namespace TSP
             return population;
         }
 
+        public List<TSPOrganism> generatePopulation(int targetSize)
+        {
+            List<TSPOrganism> population = new List<TSPOrganism>();
+
+            for (int i = 0; i < targetSize; i++)
+            {
+                population.Add(TSPOrganism.newOrganism());
+            }
+
+            return population;
+        }
+
+        public List<TSPOrganism> generatePopulation()
+        {
+            return generatePopulation(populationSize);  // Return default population size if none specified
+        }
+
+        public List<TSPOrganism> generatePopulationFromOrganism(TSPOrganism seedOrganism, double percentOfPopulation)
+        {
+            List<TSPOrganism> population = new List<TSPOrganism>();
+
+            int targetVolume = getTargetVolume(percentOfPopulation);
+
+            for (int i = 0; i < targetVolume; i++)
+            {
+                TSPOrganism seedClone = new TSPOrganism(seedOrganism.getRoute());
+
+                population.Add(seedClone);
+            }
+
+            // Fill in the rest per usual
+            population.AddRange(generatePopulation(populationSize - targetVolume));
+
+            return population;
+        }
+
         public List<TSPOrganism> createOffspring(List<TSPOrganism> parents)
         {
             List<TSPOrganism> totalOffspring = new List<TSPOrganism>();
 
             totalOffspring.AddRange(mateForOffpring(parents));
-            totalOffspring.AddRange(mutateForOffspring(parents));
+            totalOffspring.AddRange(traditionalMutate(parents));
             totalOffspring.AddRange(randomizeForOffspring());
             // We should never exceed the population size right now
 
@@ -96,6 +141,27 @@ namespace TSP
             for (int i = 0; i < offspring.Count; i++)
             {
                 offspring[i] = offspring[i].mutate();
+            }
+
+            return offspring;
+        }
+
+        private List<TSPOrganism> traditionalMutate(List<TSPOrganism> parents)
+        {
+            List<TSPOrganism> offspring = new List<TSPOrganism>();
+
+            int targetVolume = getTargetVolume(percentMutated);
+
+            int i = 0;
+            while (true)
+            {
+                if (i + 1 >= parents.Count) i = 0;  // Handle wraparound
+
+                TSPOrganism parent = parents[i];
+
+                offspring.Add(parent.mutate());
+
+                if (offspring.Count >= targetVolume) break;
             }
 
             return offspring;
@@ -140,7 +206,7 @@ namespace TSP
             return offspring;
         }
 
-        
+
         private int getTargetVolume(double targetPercentage)
         {
             int targetVolume = (int)(targetPercentage * populationSize);
