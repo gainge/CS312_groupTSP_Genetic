@@ -417,10 +417,11 @@ namespace TSP
 
             /* Algorithm Parameters */
             int populationSize = 100;
-            // The following are approximation measures
-            // Set them both to long.MaxValue if you always want it to go to the time limit
+
             long maxGenerations = 5000;
             long stagnationCutoff = 300;
+
+            bool shouldTimeout = true;
 
             // These are some dealios that you can customize
             // Apparently these are pretty statndard values
@@ -429,8 +430,8 @@ namespace TSP
             double percentMutated = 0.3;
             double percentRandom = 0.1;
 
-
-            // Percent of original population kept config
+            // Percent of the initial population that should be a clone of the greedy solution
+            double greedyProportion = 0.25;
 
             // Set up our Organism class
             TSPOrganism.Cities = Cities;
@@ -444,17 +445,26 @@ namespace TSP
             Stopwatch timer = new Stopwatch();
             timer.Start();
 
-            List<TSPOrganism> population = motherNature.generateInitialPopulation();
+            // Start by Obtaining the Greedy Solution
+            greedySolveProblem();
+            // Convert the results to a TSPOrganism
+            TSPOrganism greedySeed = new TSPOrganism(bssf.Route);
+
+            List<TSPOrganism> population = motherNature.generatePopulationFromOrganism(greedySeed, greedyProportion);
 
             // Define some counters or whatever
             long numGenerations = 0;
             long gensSinceLastBest = 0;
             int numNewBest = 0;
 
-            TSPOrganism bestSoFar = TSPOrganism.newOrganism();  // Start with a random best
+            //TSPOrganism bestSoFar = TSPOrganism.newOrganism();  // Start with a random best
+            TSPOrganism bestSoFar = greedySeed;
 
             // Here's acutal interesting code
-            while (numGenerations < maxGenerations) {
+            while (true)
+            {
+                if (timer.ElapsedMilliseconds / 1000 > TIME_LIMIT) break;
+
                 numGenerations++;
 
                 population = population.OrderBy(a => a.getFitness()).ToList();
@@ -467,6 +477,15 @@ namespace TSP
                     bestSoFar = fittestParents[0];
                     gensSinceLastBest = 0;
                     numNewBest++;
+
+                    // Update our ratios
+                    // Start to favor mutation more and more
+                    //percentMutated += ((1 - percentMutated) / ((0.02449 * Cities.Length) + 4.122));
+                    percentMutated += ((1 - percentMutated) / (1 + Math.Log(Cities.Length)));
+                    // Then update our percent mated
+                    percentMated = 1 - (percentMutated + percentRandom);
+                    motherNature.setPercentMutated(percentMutated);
+                    motherNature.setPercentMated(percentMated);
                 }
                 else
                 {
@@ -475,12 +494,22 @@ namespace TSP
 
                 List<TSPOrganism> offspring = motherNature.createOffspring(fittestParents);
 
-                population = offspring;
+                // Find the fittest Offspring
+                offspring = offspring.OrderBy(a => a.getFitness()).ToList();
+                List<TSPOrganism> fittestOffspring = offspring.GetRange(0, populationSize / 2);
 
-                // if (goToTime) continue;
+                // Merge best parents and offspring to create the new population
+                population = new List<TSPOrganism>();
+                population.AddRange(fittestParents);
+                population.AddRange(fittestOffspring);
 
-                if (timer.ElapsedMilliseconds / 1000 > TIME_LIMIT) break;
+
+                if (shouldTimeout) continue;
+
+                // Otherwise, test our break conditions
                 if (gensSinceLastBest >= stagnationCutoff) break;
+                if (numGenerations >= maxGenerations) break;
+
             }
 
             timer.Stop();
